@@ -3,8 +3,9 @@
     height: 50px;
     line-height: 50px;
     display: inline-block;
-    margin: 1px;
-    border-radius: 5px;
+    margin: 5px;
+    border-radius: 2px;
+    background-color:lightgoldenrodyellow;
 }
 
 .selectable {

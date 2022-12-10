@@ -8,7 +8,7 @@ const Board = (props) => {
           return (
             <div>
               {row.map((val) => {
-                return <Tile number={val} />;
+                return <Tile number={val} makeMove={props.makeMove} />;
               })}
             </div>
           );

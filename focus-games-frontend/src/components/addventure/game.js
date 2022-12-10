@@ -10,6 +10,7 @@ class Game extends React.Component {
       runningSum: 0,
       gameStarted: false,
       objective: null,
+      gameOver: false,
     };
   }
 
@@ -17,40 +18,139 @@ class Game extends React.Component {
     return (
       <div>
         <h2>Add-Venture</h2>
-        {this.state.objective && <h4>Target: {this.state.objective.sum}</h4>}
+        {this.state.objective && (
+          <h4>
+            Reach {this.state.objective.sum} within{" "}
+            {this.state.objective.maxMoves} moves. This is possible in{" "}
+            {this.state.objective.minMoves} moves.
+          </h4>
+        )}
         <h4>
           Moves Taken: {this.state.numMoves.toString()}, Running Sum:{" "}
           {this.state.runningSum.toString()}
         </h4>
-        <Board data={this.state.boardData} />
-        <h4>Rules</h4>
-        <ul>
-          <li>
-            Navigate around the board by clicking on the selectable tiles. Your
-            goal is to reach a sum that equals the target sum.{" "}
-          </li>
-          <li>
-            Navigating to new tiles will add their value to the running sum.
-            Backtracking will subtract the value from the sum.
-          </li>
-          <li>Every action costs one move.</li>
-          <li>
-            Your goal is to navigate around the board to the target sum in the
-            least number of moves possible, as fast as possible.
-          </li>
-        </ul>
+        <Board data={this.state.boardData} makeMove={this.makeMove} />
+        <button
+          onClick={() => {
+            this.resetGame();
+          }}
+        >
+          Reset
+        </button>
+        <button>New Game</button>
       </div>
     );
   }
 
   componentDidMount() {
+    this.newGame();
+  }
+
+  checkVictory() {
+    return (
+      this.objective.sum &&
+      this.state.runningSum === this.state.objective.sum &&
+      this.state.gameStarted
+    );
+  }
+
+  checkGameOver() {
+    return (
+      this.state.objective.maxMoves &&
+      this.state.numMoves > this.state.objective.maxMovesinitialize &&
+      this.gameStarted
+    );
+  }
+
+  generatePossibleMoves() {
+    let moveOptions = [];
+    if (this.state.pathTaken.length > 0) {
+      // Return everything next to current, except previous
+      let currMove = this.pathTaken[this.state.pathTaken.length - 1];
+      let currX = currMove[0];
+      let currY = currMove[1];
+      let lastX = null;
+      let lastY = null;
+      if (this.state.pathTaken.length > 1) {
+        let lastMove = this.pathTaken[this.state.pathTaken.length - 2];
+        lastX = lastMove[0];
+        lastY = lastMove[1];
+      }
+
+      let potentialOption = [[]];
+      if (currX + 1 < this.state.boardData.length) {
+        potentialOption[0] = currX + 1;
+        potentialOption[1] = currY;
+      }
+      moveOptions.push(potentialOption);
+      if (currX - 1 >= 0) {
+        potentialOption[0] = currX - 1;
+        potentialOption[1] = currY;
+      }
+      moveOptions.push(potentialOption);
+      if (currY + 1 < this.state.boardData.length) {
+        potentialOption[0] = currX;
+        potentialOption[1] = currY + 1;
+      }
+      moveOptions.push(potentialOption);
+      if (currY - 1 >= 0) {
+        potentialOption[0] = currX;
+        potentialOption[1] = currY - 1;
+      }
+      moveOptions.push(potentialOption);
+
+      moveOptions.filter((val) => {
+        return val[0] !== lastX && val[1] !== lastY;
+      });
+    } else {
+      // Return all locations with value of 8
+      for (let i = 0; i < this.state.boardData.length; i++) {
+        for (let j = 0; j < this.state.boardData.length; j++) {
+          if (this.state.boardData[i][j] === 0) {
+            moveOptions.push([[i, j]]);
+          }
+        }
+      }
+    }
+    return moveOptions;
+  }
+
+  makeMove(x, y) {
+    console.log(`Move attempted to ${x}, ${y}`);
+  }
+
+  resetGame() {
+    // Use the same board, but reset all moves and related state
     const newGameBoard = generateNewGame(5);
-    const objective = generateTarget(newGameBoard, 5, 12);
-    this.setState({
-      ...this.state,
+    const objective = generateTarget(newGameBoard, 6, 12);
+    let newState = {
       boardData: newGameBoard,
+      pathTaken: [],
+      numMoves: 0,
+      runningSum: 0,
+      gameStarted: false,
       objective: objective,
-    });
+      gameOver: false,
+    };
+    this.setState(newState);
+  }
+
+  newGame() {
+    // Reset all state and generate a new game
+    console.log("New game was indeed called!");
+    const newGameBoard = generateNewGame(5);
+    const objective = generateTarget(newGameBoard, 6, 12);
+    let newState = {
+      boardData: newGameBoard,
+      pathTaken: [],
+      numMoves: 0,
+      runningSum: 0,
+      gameStarted: false,
+      objective: objective,
+      gameOver: false,
+    };
+
+    this.setState(newState);
   }
 }
 
@@ -155,6 +255,7 @@ const generateTarget = (gameBoard, minMoves, maxMoves) => {
   }
 
   var organizedArray = Array.from(targetMap.values());
+  console.log(organizedArray);
   organizedArray = organizedArray.filter((entry) => {
     return entry.minMoves >= minMoves && entry.maxMoves <= maxMoves;
   });
@@ -193,9 +294,11 @@ const hypotheticalMove = (
   if (tile.down && tile.down != prevTile) {
     moveOptions.push(tile.down);
   }
-  if (numMoves >= minMoves && numMoves <= maxMoves) {
+
+  if (tile.value !== 0) {
     potentialTargets.push({ sum: runningSum, moves: numMoves });
   }
+
   if (numMoves < maxMoves) {
     for (var move of moveOptions) {
       potentialTargets = potentialTargets.concat(
