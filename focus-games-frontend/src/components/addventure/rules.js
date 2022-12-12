@@ -1,3 +1,4 @@
+import React from "react";
 import "./rules.css";
 const RulesComponent = () => {
   return (
