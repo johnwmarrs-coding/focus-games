@@ -12,10 +12,14 @@
     background-color: aquamarine;
 }
 
-.visited {
-    background-color:aqua;
+.previous {
+    background-color:black;
 }
 
 .visited.selectable {
     background-color:violet;
+}
+
+.active {
+    background-color: violet;
 }

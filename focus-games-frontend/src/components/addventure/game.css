@@ -1,0 +1,13 @@
+.myButton {
+    padding: 5px;
+    margin: 5px;
+    display: inline-block;
+    width: 100px;
+
+    border-radius: 5px;
+    background-color: aqua;
+}
+
+.myButton:hover {
+    background-color:cornflowerblue;
+}

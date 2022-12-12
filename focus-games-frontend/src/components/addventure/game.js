@@ -1,5 +1,6 @@
 import Board from "./board.js";
 import React from "react";
+import "./game.css";
 class Game extends React.Component {
   constructor(props) {
     super(props);
@@ -11,12 +12,14 @@ class Game extends React.Component {
       gameStarted: false,
       objective: null,
       gameOver: false,
+      userWon: false,
+      potentialMoves: [],
     };
   }
 
   render() {
     return (
-      <div>
+      <div className={"game"}>
         <h2>Add-Venture</h2>
         {this.state.objective && (
           <h4>
@@ -29,15 +32,32 @@ class Game extends React.Component {
           Moves Taken: {this.state.numMoves.toString()}, Running Sum:{" "}
           {this.state.runningSum.toString()}
         </h4>
-        <Board data={this.state.boardData} makeMove={this.makeMove} />
-        <button
+        {this.state.gameOver && !this.state.userWon && <h3>You Lost</h3>}
+        {this.state.gameOver && this.state.userWon && <h3>You Won</h3>}
+        <Board
+          runningSum={this.state.runningSum}
+          data={this.state.boardData}
+          makeMove={
+            this.state.gameOver
+              ? () => console.log("No more moves allowed")
+              : (x, y) => this.makeMove(x, y)
+          }
+          potentialMoves={this.state.potentialMoves}
+          pathTaken={this.state.pathTaken}
+        />
+        <span
+          className={"myButton"}
           onClick={() => {
             this.resetGame();
           }}
         >
           Reset
-        </button>
-        <button>New Game</button>
+        </span>
+        <span className={"myButton"} onClick={() => this.newGame()}>
+          New Game
+        </span>
+        <br />
+        <a href="/rules">View the Rules</a>
       </div>
     );
   }
@@ -47,99 +67,116 @@ class Game extends React.Component {
   }
 
   checkVictory() {
-    return (
-      this.objective.sum &&
+    console.log("Check Victory:");
+    console.log(`${this.state.objective.sum} == ${this.state.runningSum}`);
+    if (
+      this.state.objective.sum &&
       this.state.runningSum === this.state.objective.sum &&
       this.state.gameStarted
-    );
+    ) {
+      console.log("The game is over, the user won");
+      let updatedState = { ...this.state, userWon: true, gameOver: true };
+      this.setState(updatedState);
+    }
   }
 
   checkGameOver() {
-    return (
-      this.state.objective.maxMoves &&
-      this.state.numMoves > this.state.objective.maxMovesinitialize &&
-      this.gameStarted
-    );
+    console.log("Check Game Over:");
+    console.log(`${this.state.objective.maxMoves} >= ${this.state.numMoves}`);
+    if (
+      (this.state.objective.maxMoves &&
+        this.state.numMoves >= this.state.objective.maxMoves) ||
+      (this.state.runningSum > this.state.objective.sum &&
+        this.state.gameStarted)
+    ) {
+      console.log("The game is over, the user lost");
+      console.log("The game is over, the user won");
+      let updatedState = { ...this.state, userWon: false, gameOver: true };
+      this.setState(updatedState);
+    }
   }
 
-  generatePossibleMoves() {
+  generatePotentialMoves() {
     let moveOptions = [];
     if (this.state.pathTaken.length > 0) {
       // Return everything next to current, except previous
-      let currMove = this.pathTaken[this.state.pathTaken.length - 1];
+      let currMove = this.state.pathTaken[this.state.pathTaken.length - 1];
       let currX = currMove[0];
       let currY = currMove[1];
       let lastX = null;
       let lastY = null;
       if (this.state.pathTaken.length > 1) {
-        let lastMove = this.pathTaken[this.state.pathTaken.length - 2];
+        let lastMove = this.state.pathTaken[this.state.pathTaken.length - 2];
         lastX = lastMove[0];
         lastY = lastMove[1];
       }
 
-      let potentialOption = [[]];
       if (currX + 1 < this.state.boardData.length) {
-        potentialOption[0] = currX + 1;
-        potentialOption[1] = currY;
+        moveOptions.push([currX + 1, currY]);
       }
-      moveOptions.push(potentialOption);
       if (currX - 1 >= 0) {
-        potentialOption[0] = currX - 1;
-        potentialOption[1] = currY;
+        moveOptions.push([currX - 1, currY]);
       }
-      moveOptions.push(potentialOption);
       if (currY + 1 < this.state.boardData.length) {
-        potentialOption[0] = currX;
-        potentialOption[1] = currY + 1;
+        moveOptions.push([currX, currY + 1]);
       }
-      moveOptions.push(potentialOption);
       if (currY - 1 >= 0) {
-        potentialOption[0] = currX;
-        potentialOption[1] = currY - 1;
+        moveOptions.push([currX, currY - 1]);
       }
-      moveOptions.push(potentialOption);
 
-      moveOptions.filter((val) => {
-        return val[0] !== lastX && val[1] !== lastY;
+      moveOptions = moveOptions.filter((val) => {
+        return !(val[0] === lastX && val[1] === lastY);
       });
     } else {
-      // Return all locations with value of 8
+      // Return all locations with value of 0
       for (let i = 0; i < this.state.boardData.length; i++) {
         for (let j = 0; j < this.state.boardData.length; j++) {
           if (this.state.boardData[i][j] === 0) {
-            moveOptions.push([[i, j]]);
+            moveOptions.push([i, j]);
           }
         }
       }
     }
-    return moveOptions;
+    let newState = { ...this.state, potentialMoves: moveOptions };
+    this.setState(newState);
   }
 
   makeMove(x, y) {
-    console.log(`Move attempted to ${x}, ${y}`);
+    let newState = this.state;
+    newState.gameStarted = true;
+    newState.pathTaken.push([x, y]);
+    newState.runningSum += newState.boardData[x][y];
+    newState.numMoves += 1;
+    this.setState(newState, () => {
+      this.generatePotentialMoves();
+      this.checkGameOver();
+      this.checkVictory();
+    });
   }
 
   resetGame() {
     // Use the same board, but reset all moves and related state
-    const newGameBoard = generateNewGame(5);
-    const objective = generateTarget(newGameBoard, 6, 12);
+    //const newGameBoard = this.state.boardData;
+    //const objective = generateTarget(newGameBoard, 6, 12);
     let newState = {
-      boardData: newGameBoard,
+      boardData: this.state.boardData,
       pathTaken: [],
       numMoves: 0,
       runningSum: 0,
       gameStarted: false,
-      objective: objective,
+      objective: this.state.objective,
       gameOver: false,
+      userWon: false,
+      potentialMoves: [],
     };
-    this.setState(newState);
+    this.setState(newState, () => this.generatePotentialMoves());
   }
 
   newGame() {
     // Reset all state and generate a new game
     console.log("New game was indeed called!");
     const newGameBoard = generateNewGame(5);
-    const objective = generateTarget(newGameBoard, 6, 12);
+    const objective = generateTarget(newGameBoard, 4, 12);
     let newState = {
       boardData: newGameBoard,
       pathTaken: [],
@@ -148,9 +185,11 @@ class Game extends React.Component {
       gameStarted: false,
       objective: objective,
       gameOver: false,
+      userWon: false,
+      potentialMoves: [],
     };
 
-    this.setState(newState);
+    this.setState(newState, () => this.generatePotentialMoves());
   }
 }
 

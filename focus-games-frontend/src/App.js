@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/home.js";
+import Rules from "./pages/rules.js";
 import "./App.css";
 
 function App() {
@@ -8,6 +9,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route index element={<Home />} />
+          <Route path="/rules" element={<Rules />} />
         </Routes>
       </BrowserRouter>
     </div>
